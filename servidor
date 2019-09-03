@@ -2,37 +2,26 @@
 
 # seu código aqui
 
-# def readline(socket):
-# 	line = bytearray()
-# 	while 1:
-# 		data = conexao.recv(1)
-# 		if data == b'\n':
-# 			return line 
-# 		else:
-# 			line.extend(data)
-
 def readline(socket):
-	line = bytearray()
-	while 1:
-		print(gerador(socket, line))
+	ret = ''
+	while True:
+		c = conexao.recv(1)
+		print(ret)
 
+		if c == b'\\':
+			d = conexao.recv(1)
+			if d == b'n':
+				e = conexao.recv(1)
+				if e == b'':
+					break
+		elif c == b'\n':
+			break
 
-def gerador(socket, line):
-	buffer = conexao.recv(2048)
-	buffering = True
-	while buffering:
-		if '\n' in buffer:
-			(line, buffer) = buffer.split("\n", 1)
-			yield line + "\n"
 		else:
-			more = socket.recv(2048)
-			if not more:
-				buffering = False
-			else:
-				buffer += more
-	if buffer:
-		yield buffer
-		print(buffer)
+			ret += str(c.decode("utf-8"))
+
+	print(ret)
+
 
 import socket
 
