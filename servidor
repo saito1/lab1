@@ -11,16 +11,17 @@ def readline(socket):
 		if c == b'\\':
 			d = conexao.recv(1)
 			if d == b'n':
-				e = conexao.recv(1)
-				if e == b'':
-					break
+				print("li n")
+				break
+			else:
+				ret += str(d.decode("utf-8"))
+				break
 		elif c == b'\n':
 			break
-
 		else:
 			ret += str(c.decode("utf-8"))
 
-	print(ret)
+	return ret
 
 
 import socket
