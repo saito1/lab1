@@ -39,8 +39,7 @@ def valida_nick(data, nick, c):
 	print(aux)
 	aux.pop(0) #Remove o primeiro elemento ta lista, "/nick" ou "/rename"
 	if len(aux) > 1 or ":" in data: #Caso o tamanho da lista seja maior que 1 significa que existem " " no nick
-		#c.send(b"/error\n")
-		
+		c.send(b"/error\n")
 	elif nick != "": #Se o nick seja diferente de "" significa que o usuario ja possui nick
 		mensagem = "/renamed " + nick + " " + aux[0] + "\n"
 		c.send(str.encode(mensagem))
@@ -67,19 +66,17 @@ if __name__ == "__main__":
 	inputs = [s]
 	
 	#Sockets para escrita
-	outputs = []
+	#outputs = []
 	
-	#Lista de mensagens
-	lista_msgs = {}
 	
 	while inputs:
 	
 		#Espera para que tenha pelo menos 1 socket pronto para ser processado
 		print("Esperando o próximo evento")
-		readable, writeable , exceptional = select.select(inputs, output, inputs)
+		readable, writeable , _ = select.select(inputs, [], [])
 		
 		#Gerencia os inputs
-		print(inputs)
+		teste = readable
 		for c in readable:
 		
 			if c is s:
@@ -103,10 +100,9 @@ if __name__ == "__main__":
 					c.send(b"/error\n")
 				elif nick != "": #Caso o usuario ja tenha nick toda mensagem será válida
 					mensagem = nick + ": " + data + "\n"
-					envia_msg(writeable, str.encode(mensagem))
+					envia_msg(teste, str.encode(mensagem))
 					print(readable)
 					#c.send(str.encode(mensagem))
 				else:
-					c.send(b"/error\n")
+					c.send(b"/error\n")		
 	s.close()
-
