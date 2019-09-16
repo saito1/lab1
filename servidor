@@ -28,29 +28,28 @@ def readline(socket):
 	return ret
 
 #Envia mensagem para todos os clientes
-def envia_msg(lista_sockets, msg):
-	for conexao in lista_sockets:
-		print(conexao)
-		conexao.send(msg)
+def envia_msg(msg):
+	for conexao in inputs:
+		if conexao != s:
+			conexao.send(msg)
 
 #Função que valida o nick do usuario
 def valida_nick(data, nick, c):
 	aux = data.split(" ") #Separa a string recebida
-	print(aux)
 	aux.pop(0) #Remove o primeiro elemento ta lista, "/nick" ou "/rename"
-	if len(aux) > 1 or ":" in data: #Caso o tamanho da lista seja maior que 1 significa que existem " " no nick
-		#c.send(b"/error\n")
-		
-	elif nick != "": #Se o nick seja diferente de "" significa que o usuario ja possui nick
+	if len(aux) > 1 or ":" in data or aux[0] in lista_nicks: #Caso o tamanho da lista seja maior que 1 significa que existem " " no nick
+		c.send(b"/error\n")
+	elif nick != "" and aux[0]: #Se o nick seja diferente de "" significa que o usuario ja possui nick
 		mensagem = "/renamed " + nick + " " + aux[0] + "\n"
-		c.send(str.encode(mensagem))
-		return aux[0]
+		lista_nicks.remove(nick)
+		envia_msg(str.encode(mensagem))
+		lista_tupla_nick_conexao[c] = aux[0]
+		lista_nicks.append(aux[0])
 	else:
 		mensagem = "/joined " + aux[0] + "\n"
-		c.send(str.encode(mensagem))
-		return aux[0]
-	
-	return ""
+		envia_msg(str.encode(mensagem))
+		lista_tupla_nick_conexao[c] = aux[0]
+		lista_nicks.append(aux[0])
 
 if __name__ == "__main__":
 
@@ -66,26 +65,19 @@ if __name__ == "__main__":
 	#Sockest que para a leitura
 	inputs = [s]
 	
-	#Sockets para escrita
-	outputs = []
-	
-	#Lista de mensagens
-	lista_msgs = {}
-	
 	while inputs:
 	
 		#Espera para que tenha pelo menos 1 socket pronto para ser processado
 		print("Esperando o próximo evento")
-		readable, writeable , exceptional = select.select(inputs, output, inputs)
+		readable, _ , exceptional = select.select(inputs, [], inputs)
 		
-		#Gerencia os inputs
-		print(inputs)
 		for c in readable:
 		
 			if c is s:
 				#Um socket para leitura está pronto para aceitar conexão
 				conexao, endereco = c.accept()
 				print('Connected by', endereco)
+				c.setblocking(0)
 				#Adiciona o socket na lista de conexoes
 				inputs.append(conexao)
 				lista_tupla_nick_conexao[conexao] = ''
@@ -93,20 +85,25 @@ if __name__ == "__main__":
 			else:
 				data = readline(c)
 				nick = lista_tupla_nick_conexao[c]
-				if re.match("/nick ", data) and nick == "": #verifica se a string lida comeca com /nick
-					nick = valida_nick(data, nick, c) #Se o usuario não tier um nick ainda
-					lista_tupla_nick_conexao[c] = nick
+				if re.match("/nick ", data): #verifica se a string lida comeca com /nick
+					valida_nick(data, nick, c) #Se o usuario não tier um nick ainda
 				elif re.match("/rename ", data) and nick != "": #Verifica se a string lida comeca com /rename
-					nick = valida_nick(data, nick, c) #Se o usuario ja tiver um nick
-					lista_tupla_nick_conexao[c] = nick
-				elif re.match("/nick ",data) and nick != "": #Caso o usuario ja tenha nick e tente criar oturo
-					c.send(b"/error\n")
-				elif nick != "": #Caso o usuario ja tenha nick toda mensagem será válida
+					valida_nick(data, nick, c) #Se o usuario ja tiver um nick
+				elif nick != "" and data != "": #Caso o usuario ja tenha nick toda mensagem será válida
 					mensagem = nick + ": " + data + "\n"
-					envia_msg(writeable, str.encode(mensagem))
-					print(readable)
-					#c.send(str.encode(mensagem))
+					envia_msg(str.encode(mensagem))
+				elif data == "":
+					if nick != "":
+						mensagem = "/quit " + nick + "\n"
+						envia_msg(str.encode(mensagem))
+						lista_nicks.remove(nick)
+					del lista_tupla_nick_conexao[c]
+					inputs.remove(c)
+					c.close()
 				else:
-					c.send(b"/error\n")
+					c.send(b"/error\n")			
+		for c in exceptional:
+			inputs.remove(c)
+			c.close()
+			del lista_tupla_nick_conexao[c]
 	s.close()
-
