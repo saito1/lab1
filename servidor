@@ -69,7 +69,7 @@ if __name__ == "__main__":
 	
 		#Espera para que tenha pelo menos 1 socket pronto para ser processado
 		print("Esperando o próximo evento")
-		readable, _ , exceptional = select.select(inputs, [], inputs)
+		readable, writable, exceptional = select.select(inputs, [], inputs)
 		
 		for c in readable:
 		
@@ -101,7 +101,19 @@ if __name__ == "__main__":
 					inputs.remove(c)
 					c.close()
 				else:
-					c.send(b"/error\n")			
+					c.send(b"/error\n")		
+
+		for c in writable:
+		    try:
+		    	next_msg = lista_tupla_nick_conexao[c].get_nowait()
+		    except lista_nicks.empty:
+		        # No messages waiting so stop checking for writability.
+		        print ("output queue for", c.lista_nicks(), "is empty")
+		        outputs.remove(c)
+		    else:
+		        print ('sending "%c" to %c' % (next_msg, c.lista_nicks()))
+		        c.send(next_msg)
+			raise
 		for c in exceptional:
 			inputs.remove(c)
 			c.close()
